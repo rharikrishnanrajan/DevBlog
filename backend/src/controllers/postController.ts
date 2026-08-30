@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ResultSetHeader } from 'mysql2';
 import pool, { isDbConnected } from '../config/database';
-import { BlogPostRow, CreatePostInput, UpdatePostInput } from '../types/post';
+import { BlogPost, BlogPostRow, CreatePostInput, UpdatePostInput } from '../types/post';
 
 // ── Validation Constants ─────────────────────────────────────────────────────
 const MAX_TITLE_LENGTH = 255;
@@ -28,7 +28,7 @@ function parseAndValidateId(idParam: string | undefined): number | null {
 }
 
 // In-memory fallback post store (ensures site is functional even if database is offline or unconfigured)
-let fallbackPosts: BlogPostRow[] = [
+let fallbackPosts: BlogPost[] = [
   {
     id: 1,
     title: 'Building Scalable APIs with TypeScript & Express',
@@ -158,7 +158,7 @@ export const createPost = async (
   }
 
   // Fallback creation
-  const newPost: BlogPostRow = {
+  const newPost: BlogPost = {
     id: nextFallbackId++,
     title: cleanTitle,
     content: cleanContent,
