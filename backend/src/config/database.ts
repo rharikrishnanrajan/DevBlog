@@ -26,9 +26,9 @@ export const pool: Pool = mysql.createPool({
   password: dbPassword,
   database: dbName,
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-  connectTimeout: 10000,
+  connectionLimit: 5, // Reduced to prevent exhausting DB connections
+  queueLimit: 10, // Limit queue size when all connections are in use
+  connectTimeout: 10000, // 10 seconds
   ssl: sslConfig
 });
 

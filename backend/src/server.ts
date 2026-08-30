@@ -35,15 +35,15 @@ const candidateFrontendPaths = [
 const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || candidateFrontendPaths[0];
 
 // CORS Configuration
-const frontendUrl = process.env.FRONTEND_URL || '*';
-app.use(
-  cors({
-    origin: frontendUrl === '*' ? '*' : frontendUrl,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    maxAge: 86400 // Cache preflight response for 24 hours
-  })
-);
+const frontendUrl = process.env.FRONTEND_URL;
+// Harden CORS: restrict to specific frontend URL, avoid wildcard in production
+const corsOptions = {
+  origin: frontendUrl || 'http://localhost:3000', // default to localhost for development
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // OPTIONS is handled automatically
+  allowedHeaders: ['Content-Type'], // Authorization not needed for now
+  credentials: false, // set to true if your frontend needs to send cookies or auth headers
+};
+app.use(cors(corsOptions));
 
 // Body Parsing Middleware with size limits
 app.use(express.json({ limit: '1mb' }));
