@@ -3,24 +3,13 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     var service = {};
     var baseUrl = API_CONFIG.BASE_URL;
     var STORAGE_KEY = 'developer_blog_posts';
-    var SEEDED_KEY = 'developer_blog_seeded'; // tracks if localStorage has legacy fake data
-
-    // On first load, clear out any stale seeded demo data from previous versions
-    // so the real backend data is always shown when available.
-    (function clearLegacySeed() {
-        try {
-            if (!localStorage.getItem(SEEDED_KEY)) {
-                localStorage.removeItem(STORAGE_KEY);
-                localStorage.setItem(SEEDED_KEY, '1');
-            }
-        } catch(e) {}
-    })();
 
     function getLocalPosts() {
         try {
             var data = localStorage.getItem(STORAGE_KEY);
             if (!data) return [];
-            return JSON.parse(data) || [];
+            var parsed = JSON.parse(data);
+            return Array.isArray(parsed) ? parsed : [];
         } catch (e) {
             return [];
         }

@@ -2,14 +2,21 @@
 var app = angular.module('blogApp', ['ngRoute', 'ngSanitize']);
 
 // Central API Configuration
-// When deployed unified (frontend + backend served together): uses relative '/api'
-// When injected via GitHub Actions or global variable: uses window.__API_URL__
-// Fallback for standalone file:// protocol: 'http://localhost:5000/api'
+// When deployed unified on Render (frontend + backend served together): uses relative '/api'
+// When hosted separately on GitHub Pages: uses injected window.__API_URL__ (or localStorage override)
+// Fallback for local development: 'http://localhost:5000/api'
 app.constant('API_CONFIG', {
     BASE_URL: (function() {
         if (window.__API_URL__ && window.__API_URL__ !== '__INJECT_API_URL__' && window.__API_URL__.trim() !== '') {
-            return window.__API_URL__;
+            return window.__API_URL__.replace(/\/+$/, '');
         }
+        try {
+            var customApi = localStorage.getItem('devblog_api_url');
+            if (customApi && customApi.trim() !== '') {
+                return customApi.trim().replace(/\/+$/, '');
+            }
+        } catch(e) {}
+
         if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
             return '/api';
         }
