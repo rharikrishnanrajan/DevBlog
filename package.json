@@ -1,0 +1,22 @@
+{
+  "name": "developer-centric-personal-blog-platform",
+  "version": "1.0.0",
+  "description": "Developer-Centric Personal Blog Platform (Unified Frontend & Express REST API Backend)",
+  "main": "backend/dist/server.js",
+  "scripts": {
+    "postinstall": "npm --prefix backend install",
+    "build": "npm --prefix backend run build",
+    "start": "npm --prefix backend start",
+    "dev": "npm --prefix backend run dev"
+  },
+  "keywords": [
+    "developer-blog",
+    "angularjs",
+    "express",
+    "typescript",
+    "mysql",
+    "fullstack"
+  ],
+  "author": "",
+  "license": "ISC"
+}

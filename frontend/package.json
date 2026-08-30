@@ -4,6 +4,7 @@
   "description": "AngularJS Frontend for Developer-Centric Personal Blog Platform",
   "main": "index.html",
   "scripts": {
+    "build": "node build.js",
     "start": "npx serve ."
   },
   "keywords": [

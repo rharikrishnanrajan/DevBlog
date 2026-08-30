@@ -2,13 +2,23 @@ import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import postRoutes from './routes/postRoutes';
-import { initDatabase } from './config/database';
+import { initDatabase, isDbConnected } from './config/database';
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Resolve frontend directory path across dev and production build structures
+const candidateFrontendPaths = [
+  path.resolve(__dirname, '../../frontend'),
+  path.resolve(__dirname, '../frontend'),
+  path.resolve(process.cwd(), 'frontend'),
+  path.resolve(process.cwd(), '../frontend')
+];
+const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || candidateFrontendPaths[0];
 
 // CORS Configuration
 const frontendUrl = process.env.FRONTEND_URL || '*';
@@ -29,20 +39,37 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
+// Serve Static Frontend Assets (HTML, CSS, JS, Images)
+if (fs.existsSync(frontendPath)) {
+  console.log(`📁 Serving frontend static assets from: ${frontendPath}`);
+  app.use(express.static(frontendPath));
+}
+
 // Health Check Endpoint
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
-    message: 'Developer Blog API (Express + TypeScript) is running smoothly'
+    message: 'Developer Blog API (Express + TypeScript) is running smoothly',
+    database: isDbConnected() ? 'connected (MySQL)' : 'in-memory fallback (active)'
   });
 });
 
 // API Routes
 app.use('/api/posts', postRoutes);
 
-// Fallback 404 handler for undefined API routes
-app.use((_req: Request, res: Response) => {
+// Fallback 404 handler for undefined /api routes
+app.all('/api/*', (_req: Request, res: Response) => {
   res.status(404).json({ message: 'API route not found' });
+});
+
+// SPA Catch-All: Serve frontend index.html for all non-API web traffic
+app.get('*', (_req: Request, res: Response) => {
+  const indexPath = path.join(frontendPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send('Frontend index.html not found');
+  }
 });
 
 // Global Error Handler Middleware
@@ -66,8 +93,9 @@ initDatabase().catch((err) => {
 
 // Start Express Server
 app.listen(PORT, () => {
-  console.log(`🚀 Express (TypeScript) Blog API running on http://localhost:${PORT}`);
-  console.log(`📡 Endpoints available under http://localhost:${PORT}/api/posts`);
+  console.log(`🚀 Unified Blog Application running on http://localhost:${PORT}`);
+  console.log(`🌐 Frontend UI: http://localhost:${PORT}`);
+  console.log(`📡 REST API:   http://localhost:${PORT}/api/posts`);
 });
 
 export default app;

@@ -2,12 +2,19 @@
 var app = angular.module('blogApp', ['ngRoute', 'ngSanitize']);
 
 // Central API Configuration
-// In production: window.__API_URL__ is injected by GitHub Actions (see .github/workflows/deploy.yml)
-// In local dev:  falls back to http://localhost:5000/api automatically
+// When deployed unified (frontend + backend served together): uses relative '/api'
+// When injected via GitHub Actions or global variable: uses window.__API_URL__
+// Fallback for standalone file:// protocol: 'http://localhost:5000/api'
 app.constant('API_CONFIG', {
-    BASE_URL: (window.__API_URL__ && window.__API_URL__ !== '__INJECT_API_URL__')
-        ? window.__API_URL__
-        : 'http://localhost:5000/api'
+    BASE_URL: (function() {
+        if (window.__API_URL__ && window.__API_URL__ !== '__INJECT_API_URL__' && window.__API_URL__.trim() !== '') {
+            return window.__API_URL__;
+        }
+        if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
+            return '/api';
+        }
+        return 'http://localhost:5000/api';
+    })()
 });
 
 // Configure client-side routing

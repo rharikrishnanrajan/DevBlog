@@ -1,71 +1,86 @@
-name: Deploy Frontend to GitHub Pages
+name: Deploy to GitHub Pages
 
+# ── Triggers ──────────────────────────────────────────────────────────────────
 on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
-# Required permissions for official GitHub Pages deployment actions
+# ── Permissions (least-privilege) ─────────────────────────────────────────────
+# Only grant the exact permissions this workflow needs.
+# Any other GitHub token capability is explicitly denied.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: read   # checkout code
+  pages: write     # deploy to GitHub Pages
+  id-token: write  # OIDC token for Pages deployment
 
-# Only one concurrent deployment; cancel in-progress runs
+# ── Concurrency ───────────────────────────────────────────────────────────────
+# Only one deployment runs at a time. In-flight deployments are NOT cancelled
+# so we never leave the site in a half-deployed state.
 concurrency:
-  group: "pages"
+  group: 'pages'
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Build & Deploy Frontend
+  # ── Build ────────────────────────────────────────────────────────────────────
+  build:
+    name: Build static site
     runs-on: ubuntu-latest
+    timeout-minutes: 15   # ── Security: kill runaway builds (prevents wasted minutes & cost)
+
+    steps:
+      # ── Security: Pin to full commit SHA not just a tag ───────────────────────
+      # Tags like @v4 are mutable — a compromised action author could push
+      # malicious code. SHA pins are immutable and cryptographically verifiable.
+      - name: Checkout repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+        # ── Security: --ignore-scripts prevents malicious postinstall scripts
+        # from running during npm install (supply-chain attack mitigation).
+        working-directory: frontend
+
+      # ── Security: Block deployment if high-severity CVEs exist ───────────────
+      # This step runs BEFORE the build. If any dependency has a known
+      # high or critical vulnerability, the entire pipeline fails.
+      - name: Audit dependencies for vulnerabilities
+        run: npm audit --audit-level=high
+        working-directory: frontend
+        continue-on-error: false
+
+      - name: Build static site
+        run: npm run build
+        working-directory: frontend
+        env:
+          # ── Security: ensure no dev-mode flags leak into production builds
+          NODE_ENV: production
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3.0.1
+        with:
+          path: frontend/dist
+
+  # ── Deploy ───────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10   # ── Security: kill runaway deployments
+    needs: build
 
     steps:
-      # ── 1. Checkout the repository ──────────────────────────────────────────
-      - name: Checkout repository
-        uses: actions/checkout@v4.2.2
-
-      # ── 2. Configure GitHub Pages ───────────────────────────────────────────
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      # ── 3. Inject the production API URL into index.html ────────────────────
-      #    Replaces the __INJECT_API_URL__ placeholder with the real backend URL.
-      #    Set the API_URL secret or variable in: Settings > Secrets and variables > Actions
-      #    Example value: https://developer-blog-backend.onrender.com/api
-      - name: Inject API URL into index.html
-        env:
-          API_URL: ${{ vars.API_URL || secrets.API_URL }}
-        run: |
-          TARGET_URL="${API_URL:-https://developer-blog-backend.onrender.com/api}"
-          if [ -z "$API_URL" ]; then
-            echo "::warning::API_URL is not set in GitHub secrets or variables. Using default fallback: ${TARGET_URL}"
-          fi
-          sed -i "s|__INJECT_API_URL__|${TARGET_URL}|g" frontend/index.html
-          echo "Injected API_URL: ${TARGET_URL}"
-
-      # ── 4. Verify injection worked (grep for leftover placeholder = bad) ──────
-      - name: Verify injection
-        run: |
-          if grep -q "__INJECT_API_URL__" frontend/index.html; then
-            echo "ERROR: Placeholder was NOT replaced. Check API_URL configuration."
-            exit 1
-          fi
-          echo "Injection verified. Live API_URL in index.html:"
-          grep "window.__API_URL__" frontend/index.html
-
-      # ── 5. Upload frontend/ as a Pages artifact ───────────────────────────────
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./frontend
-
-      # ── 6. Deploy to GitHub Pages ─────────────────────────────────────────────
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5

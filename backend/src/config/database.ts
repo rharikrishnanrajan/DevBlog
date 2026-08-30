@@ -28,8 +28,14 @@ export const pool: Pool = mysql.createPool({
         }
 });
 
+let dbConnected = false;
+
+export function isDbConnected(): boolean {
+  return dbConnected;
+}
+
 // Auto-initialize posts table on startup
-export async function initDatabase(): Promise<void> {
+export async function initDatabase(): Promise<boolean> {
   console.log(
     `🔌 Connecting to MySQL at ${dbHost}:${dbPort} (User: ${dbUser}, Database: ${dbName})...`
   );
@@ -50,16 +56,21 @@ export async function initDatabase(): Promise<void> {
     await connection.query(createTableQuery);
     console.log('✅ Verified `posts` table in database.');
     connection.release();
+    dbConnected = true;
+    return true;
   } catch (error: unknown) {
+    dbConnected = false;
     const err = error as { message?: string; code?: string };
-    console.error('❌ Failed to connect to MySQL database:', err.message);
+    console.warn('⚠️ MySQL database connection could not be established:', err.message);
+    console.warn('ℹ️ Falling back to resilient in-memory storage so the application stays fully functional.');
     if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error('👉 Please check your DB_USER and DB_PASSWORD in backend/.env');
+      console.error('👉 Please check your DB_USER and DB_PASSWORD in backend/.env or environment variables.');
     } else if (err.code === 'ER_BAD_DB_ERROR') {
       console.error(
         `👉 Database "${dbName}" does not exist. Change DB_NAME in backend/.env to an existing database like "defaultdb" or create "blog".`
       );
     }
+    return false;
   }
 }
 
