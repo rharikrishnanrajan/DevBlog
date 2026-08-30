@@ -46,5 +46,13 @@ services:
       - key: DB_NAME
         value: blog
 
+      # Aiven MySQL requires SSL; set to 'true' to enable, 'false' to disable
+      - key: DB_SSL
+        value: "true"
+
+      # For Aiven's self-signed CA cert, set to 'false' to skip strict cert verification
+      - key: DB_SSL_REJECT_UNAUTHORIZED
+        value: "false"
+
       - key: FRONTEND_URL
         value: "*"

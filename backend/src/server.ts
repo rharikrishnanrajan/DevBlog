@@ -36,9 +36,10 @@ const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || can
 
 // CORS Configuration
 const frontendUrl = process.env.FRONTEND_URL;
-// Harden CORS: restrict to specific frontend URL, avoid wildcard in production
+// When FRONTEND_URL='*' allow all origins (open API); otherwise restrict to specified domain
+const corsOrigin = (!frontendUrl || frontendUrl === '*') ? true : frontendUrl;
 const corsOptions = {
-  origin: frontendUrl || 'http://localhost:3000', // default to localhost for development
+  origin: corsOrigin,
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // OPTIONS is handled automatically
   allowedHeaders: ['Content-Type'], // Authorization not needed for now
   credentials: false, // set to true if your frontend needs to send cookies or auth headers

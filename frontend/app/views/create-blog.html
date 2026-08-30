@@ -82,13 +82,13 @@
                 </thead>
                 <tbody>
                     <tr ng-repeat="item in existingPosts track by item.id">
-                        <td>
+                        <td data-label="Blog Title">
                             <a href="#!/blog/{{ item.id }}" class="table-post-title" target="_blank" title="View published blog">
                                 {{ item.title }}
                             </a>
                         </td>
-                        <td class="table-date">{{ formatDate(item.created_at) }}</td>
-                        <td class="table-actions">
+                        <td class="table-date" data-label="Published">{{ formatDate(item.created_at) }}</td>
+                        <td class="table-actions" data-label="Actions">
                             <a href="#!/admin/edit/{{ item.id }}" class="btn-action btn-edit" id="edit-post-{{ item.id }}">
                                 ✏️ Edit
                             </a>

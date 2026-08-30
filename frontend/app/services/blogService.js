@@ -3,35 +3,26 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     var service = {};
     var baseUrl = API_CONFIG.BASE_URL;
     var STORAGE_KEY = 'developer_blog_posts';
+    var SEEDED_KEY = 'developer_blog_seeded'; // tracks if localStorage has legacy fake data
 
-    // Initial default posts if local storage is empty
-    var defaultPosts = [
-        {
-            id: 1,
-            title: 'Getting Started with Modern Web Development',
-            content: 'Building lightweight, responsive, and robust web applications starts with clean architectural separation. Discover how simple design patterns enhance maintainability and performance across full-stack applications.',
-            created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
-            updated_at: new Date(Date.now() - 86400000 * 3).toISOString()
-        },
-        {
-            id: 2,
-            title: 'Zero-Downtime Static Deployment on GitHub Pages',
-            content: 'GitHub Pages provides fast, reliable, and secure static site hosting directly from your repository. Integrating automated CI/CD workflows ensures seamless, secure updates with every push.',
-            created_at: new Date(Date.now() - 86400000).toISOString(),
-            updated_at: new Date(Date.now() - 86400000).toISOString()
-        }
-    ];
+    // On first load, clear out any stale seeded demo data from previous versions
+    // so the real backend data is always shown when available.
+    (function clearLegacySeed() {
+        try {
+            if (!localStorage.getItem(SEEDED_KEY)) {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.setItem(SEEDED_KEY, '1');
+            }
+        } catch(e) {}
+    })();
 
     function getLocalPosts() {
         try {
             var data = localStorage.getItem(STORAGE_KEY);
-            if (!data) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPosts));
-                return defaultPosts;
-            }
-            return JSON.parse(data);
+            if (!data) return [];
+            return JSON.parse(data) || [];
         } catch (e) {
-            return defaultPosts;
+            return [];
         }
     }
 
@@ -46,6 +37,11 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     // Fetch all published blog posts
     service.getAll = function() {
         return $http.get(baseUrl + '/posts')
+            .then(function(response) {
+                // Backend succeeded — sync localStorage with the real data
+                saveLocalPosts(response.data || []);
+                return response;
+            })
             .catch(function(err) {
                 console.warn('Backend unavailable, using local storage:', err);
                 var posts = getLocalPosts();
