@@ -43,15 +43,22 @@ jobs:
           API_URL: ${{ secrets.API_URL }}
         run: |
           if [ -z "$API_URL" ]; then
-            echo "WARNING: API_URL secret is not set. Using localhost fallback."
-            API_URL="http://localhost:5000/api"
+            echo "ERROR: API_URL secret is not set in GitHub → Settings → Secrets."
+            echo "Please add it and re-run the workflow."
+            exit 1
           fi
           sed -i "s|__INJECT_API_URL__|${API_URL}|g" frontend/index.html
           echo "Injected API_URL: ${API_URL}"
 
-      # ── 4. Verify injection worked ───────────────────────────────────────────
+      # ── 4. Verify injection worked (grep for leftover placeholder = bad) ──────
       - name: Verify injection
-        run: grep -n "__API_URL__" frontend/index.html || echo "Placeholder replaced successfully"
+        run: |
+          if grep -q "__INJECT_API_URL__" frontend/index.html; then
+            echo "ERROR: Placeholder was NOT replaced. Check API_URL secret."
+            exit 1
+          fi
+          echo "Injection verified. Live API_URL in index.html:"
+          grep "window.__API_URL__" frontend/index.html
 
       # ── 5. Upload frontend/ as a Pages artifact ───────────────────────────────
       - name: Upload Pages artifact
