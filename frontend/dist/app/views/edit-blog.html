@@ -1,0 +1,76 @@
+<div class="page-container admin-view">
+    <!-- Breadcrumb / Header -->
+    <div class="admin-header">
+        <a href="#!/admin/create" class="btn btn-outline" id="back-admin-link">
+            <span class="arrow">&larr;</span> Back to Manage Blogs
+        </a>
+        <h1 class="page-title">Edit Blog Post</h1>
+        <p class="page-subtitle">Update your blog's title or content.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div ng-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading blog details for editing...</p>
+    </div>
+
+    <!-- Alert / Feedback Notification -->
+    <div ng-if="alert" class="alert-box" ng-class="{'alert-success': alert.type === 'success', 'alert-error': alert.type === 'error'}">
+        <span class="alert-icon">{{ alert.type === 'success' ? '✅' : '⚠️' }}</span>
+        <div class="alert-content">
+            <p>{{ alert.message }}</p>
+        </div>
+    </div>
+
+    <!-- Edit Blog Form -->
+    <div class="form-card" ng-if="!loading">
+        <form ng-submit="updateBlog()" novalidate>
+            <div class="form-group">
+                <label for="edit-blog-title" class="form-label">
+                    Blog Title <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="edit-blog-title" 
+                    class="form-control" 
+                    ng-model="post.title" 
+                    placeholder="Enter blog title" 
+                    maxlength="255"
+                    required 
+                    autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="edit-blog-content" class="form-label">
+                    Blog Content <span class="required-star">*</span>
+                </label>
+                <textarea 
+                    id="edit-blog-content" 
+                    class="form-control form-textarea" 
+                    ng-model="post.content" 
+                    rows="14" 
+                    placeholder="Write your article content here..." 
+                    required></textarea>
+                <span class="form-hint">💡 Supports Markdown: # Headings, **bold**, `code`, ```code blocks```, - lists, &amp; &gt; quotes.</span>
+            </div>
+
+            <div class="form-actions">
+                <button 
+                    type="submit" 
+                    class="btn btn-primary btn-large" 
+                    id="update-btn" 
+                    ng-disabled="submitting || !post.title || !post.content">
+                    <span ng-if="!submitting">💾 Update Blog</span>
+                    <span ng-if="submitting">Updating...</span>
+                </button>
+                <button 
+                    type="button" 
+                    class="btn btn-outline" 
+                    id="cancel-edit-btn" 
+                    ng-click="cancelEdit()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

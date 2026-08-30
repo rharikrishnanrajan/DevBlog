@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="blogApp">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevBlog</title>
+    <meta name="description" content="A minimalist, developer-focused personal blog platform for sharing thoughts, tutorials, and experiences.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/jpeg" href="logo.jpg">
+    <link rel="apple-touch-icon" href="logo.jpg">
+    <meta name="theme-color" content="#1a1a2e">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Code Syntax Highlighting Theme (GitHub Dark) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+    <!-- API URL Injection (replaced by GitHub Actions at deploy time) -->
+    <!-- DO NOT remove this script block; the deploy workflow injects the production URL here -->
+    <script>
+        // GitHub Actions replaces __INJECT_API_URL__ with the real backend URL before deploying.
+        // Locally this placeholder stays as-is; app.js will fall back to http://localhost:5000/api.
+        window.__API_URL__ = '__INJECT_API_URL__';
+    </script>
+
+    <!-- Custom Developer CSS -->
+    <link rel="stylesheet" href="app/styles/style.css">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="site-header">
+        <div class="header-container">
+            <a href="#!/" class="brand-logo">
+                <span class="brand-prefix">&gt;</span>
+                <span class="brand-title">DevBlog</span>
+                <span class="cursor-blink">_</span>
+            </a>
+            <nav class="nav-links" id="site-nav">
+                <a href="#!/" class="nav-link" id="nav-home">Home</a>
+                <a href="#!/admin/create" class="nav-btn" id="nav-create">+ Write a Blog</a>
+            </nav>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation" onclick="(function(){var t=document.getElementById('nav-toggle');var n=document.getElementById('site-nav');t.classList.toggle('is-open');n.classList.toggle('is-open');})()">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dynamic View Container -->
+    <main class="main-container">
+        <div ng-view class="view-content"></div>
+    </main>
+
+    <!-- Site Footer -->
+    <footer class="site-footer">
+        <div class="footer-container">
+            <p>&copy; 2026 DevBlog</p>
+        </div>
+    </footer>
+
+    <!-- Markdown Parser & Syntax Highlighter -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- AngularJS & Route Dependencies -->
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-sanitize.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="app/app.js"></script>
+    <script src="app/services/blogService.js"></script>
+    <script src="app/controllers/blogController.js"></script>
+    <script src="app/controllers/adminController.js"></script>
+
+    <!-- Mobile nav: close overlay when a link is tapped -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var nav = document.getElementById('site-nav');
+            var toggle = document.getElementById('nav-toggle');
+            if (nav && toggle) {
+                nav.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
+                        nav.classList.remove('is-open');
+                        toggle.classList.remove('is-open');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
