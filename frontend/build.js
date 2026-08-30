@@ -40,8 +40,8 @@ for (const item of itemsToCopy) {
 const distIndexPath = path.join(distDir, 'index.html');
 if (fs.existsSync(distIndexPath)) {
   let html = fs.readFileSync(distIndexPath, 'utf8');
-  const apiUrl = process.env.API_URL || '';
-  if (apiUrl) {
+  const apiUrl = (process.env.API_URL || '').trim();
+  if (apiUrl && apiUrl !== 'undefined' && apiUrl !== '${{ secrets.API_URL }}' && apiUrl !== '${{ vars.API_URL }}') {
     html = html.replace('__INJECT_API_URL__', apiUrl);
     console.log(`[build.js] Injected production API_URL: ${apiUrl}`);
   }

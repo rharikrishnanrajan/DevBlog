@@ -2,42 +2,62 @@
 var app = angular.module('blogApp', ['ngRoute', 'ngSanitize']);
 
 // Central API Configuration
-// When deployed unified on Render (frontend + backend served together): uses relative '/api'
-// When hosted separately on GitHub Pages: uses injected window.__API_URL__ (or localStorage override)
-// Fallback for local development: 'http://localhost:5000/api'
+// Resolves the backend REST API endpoint across environments:
+// 1. Build-time injected URL: window.__API_URL__
+// 2. User dynamic setting: localStorage.getItem('devblog_api_url')
+// 3. Local Development: 'http://localhost:5000/api'
+// 4. Unified Full-Stack Cloud Host (Render/Railway): '/api'
+// 5. GitHub Pages (Static): Fallback to resilient client-side storage
 app.constant('API_CONFIG', {
     BASE_URL: (function() {
-        if (window.__API_URL__ && window.__API_URL__ !== '__INJECT_API_URL__' && window.__API_URL__.trim() !== '') {
-            return window.__API_URL__.replace(/\/+$/, '');
+        // 1. Check build-time injected API_URL
+        if (window.__API_URL__ && 
+            window.__API_URL__ !== '__INJECT_API_URL__' && 
+            window.__API_URL__.trim() !== '' && 
+            !window.__API_URL__.includes('${{')) {
+            var url = window.__API_URL__.trim().replace(/\/+$/, '');
+            return url.endsWith('/api') ? url : url + '/api';
         }
+
+        // 2. Check user dynamic override from localStorage
         try {
             var customApi = localStorage.getItem('devblog_api_url');
             if (customApi && customApi.trim() !== '') {
-                return customApi.trim().replace(/\/+$/, '');
+                var cUrl = customApi.trim().replace(/\/+$/, '');
+                return cUrl.endsWith('/api') ? cUrl : cUrl + '/api';
             }
-        } catch(e) {}
+        } catch (e) {}
 
-        // If running locally on a separate dev port (like VS Code Live Server on 5500 or file protocol)
-        if (window.location) {
+        // 3. Environment detection via window.location
+        if (typeof window !== 'undefined' && window.location) {
             var hostname = window.location.hostname;
             var port = window.location.port;
+
+            // Local development
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
                 if (port === '5000') {
                     return '/api';
                 }
                 return 'http://localhost:5000/api';
             }
+
+            // GitHub Pages or static host without backend URL
+            if (hostname.endsWith('.github.io') || window.location.protocol === 'file:') {
+                return ''; // Triggers offline/client-side storage mode
+            }
+
+            // Hosted unified full-stack web service (e.g. Render, Railway, VPS)
             if (window.location.protocol && window.location.protocol.startsWith('http')) {
                 return '/api';
             }
         }
+
         return 'http://localhost:5000/api';
     })()
 });
 
 // Configure client-side routing
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
-    // Configure hash-bang routing for seamless compatibility with GitHub Pages
     $locationProvider.hashPrefix('!');
 
     $routeProvider
@@ -51,7 +71,7 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'app/views/blog-detail.html',
             controller: 'BlogController'
         })
-        // Admin: Create a new blog (also lists existing blogs for management)
+        // Admin: Create a new blog (and manage existing)
         .when('/admin/create', {
             templateUrl: 'app/views/create-blog.html',
             controller: 'AdminController'
@@ -61,7 +81,7 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'app/views/edit-blog.html',
             controller: 'AdminController'
         })
-        // Fallback: Redirect undefined routes to Home
+        // Fallback: Redirect unknown routes to home
         .otherwise({
             redirectTo: '/'
         });
