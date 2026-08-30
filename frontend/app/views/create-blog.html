@@ -1,0 +1,108 @@
+<div class="page-container admin-view">
+    <!-- Breadcrumb / Header -->
+    <div class="admin-header">
+        <a href="#!/" class="btn btn-outline" id="back-home-link">
+            <span class="arrow">&larr;</span> Back to Home
+        </a>
+        <h1 class="page-title">Create New Blog</h1>
+        <p class="page-subtitle">Write and publish your thoughts to your personal platform.</p>
+    </div>
+
+    <!-- Alert / Feedback Notification -->
+    <div ng-if="alert" class="alert-box" ng-class="{'alert-success': alert.type === 'success', 'alert-error': alert.type === 'error'}">
+        <span class="alert-icon">{{ alert.type === 'success' ? '✅' : '⚠️' }}</span>
+        <div class="alert-content">
+            <p>{{ alert.message }}</p>
+        </div>
+    </div>
+
+    <!-- Create Blog Form -->
+    <div class="form-card">
+        <form ng-submit="publishBlog()" novalidate>
+            <div class="form-group">
+                <label for="blog-title" class="form-label">
+                    Blog Title <span class="required-star">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="blog-title" 
+                    class="form-control" 
+                    ng-model="post.title" 
+                    placeholder="e.g. Building REST APIs with Node.js & MySQL"
+                    maxlength="255" 
+                    required 
+                    autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="blog-content" class="form-label">
+                    Blog Content <span class="required-star">*</span>
+                </label>
+                <textarea 
+                    id="blog-content" 
+                    class="form-control form-textarea" 
+                    ng-model="post.content" 
+                    rows="12" 
+                    placeholder="Write your article content here..." 
+                    required></textarea>
+                <span class="form-hint">Tip: Normal paragraphs and line breaks are automatically preserved.</span>
+            </div>
+
+            <div class="form-actions">
+                <button 
+                    type="submit" 
+                    class="btn btn-primary btn-large" 
+                    id="publish-btn" 
+                    ng-disabled="submitting || !post.title || !post.content">
+                    <span ng-if="!submitting">🚀 Publish Blog</span>
+                    <span ng-if="submitting">Publishing...</span>
+                </button>
+                <a href="#!/" class="btn btn-outline" id="cancel-create-btn">Cancel</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Blog Management Section (Edit / Delete) -->
+    <section class="management-section">
+        <div class="section-header">
+            <h2>Manage Existing Blogs</h2>
+            <span class="count-badge">{{ existingPosts.length }} Published</span>
+        </div>
+
+        <div class="table-responsive" ng-if="existingPosts.length > 0">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width: 50%;">Blog Title</th>
+                        <th style="width: 25%;">Published Date</th>
+                        <th style="width: 25%; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="item in existingPosts track by item.id">
+                        <td>
+                            <a href="#!/blog/{{ item.id }}" class="table-post-title" target="_blank" title="View published blog">
+                                {{ item.title }}
+                            </a>
+                        </td>
+                        <td class="table-date">{{ formatDate(item.created_at) }}</td>
+                        <td class="table-actions">
+                            <a href="#!/admin/edit/{{ item.id }}" class="btn-action btn-edit" id="edit-post-{{ item.id }}">
+                                ✏️ Edit
+                            </a>
+                            <button type="button" class="btn-action btn-delete" id="delete-post-{{ item.id }}" ng-click="deleteBlog(item)">
+                                🗑️ Delete
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div ng-if="existingPosts.length === 0" class="empty-management">
+            <p>No blogs published yet. Fill out the form above to publish your first post!</p>
+        </div>
+    </section>
+</div>

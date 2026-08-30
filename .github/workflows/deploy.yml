@@ -1,0 +1,49 @@
+name: Deploy Frontend to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout the repository ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Inject the production API URL into index.html ────────────────────
+      #    Replaces the __INJECT_API_URL__ placeholder with the real backend URL.
+      #    Set the API_URL secret in: Settings → Secrets and variables → Actions
+      #    Example value: https://my-blog-backend.onrender.com/api
+      - name: Inject API URL into index.html
+        env:
+          API_URL: ${{ secrets.API_URL }}
+        run: |
+          if [ -z "$API_URL" ]; then
+            echo "⚠️  WARNING: API_URL secret is not set. Using localhost fallback."
+            API_URL="http://localhost:5000/api"
+          fi
+          sed -i "s|__INJECT_API_URL__|${API_URL}|g" frontend/index.html
+          echo "✅ Injected API_URL: ${API_URL}"
+
+      # ── 3. Verify injection worked ───────────────────────────────────────────
+      - name: Verify injection
+        run: grep -n "__API_URL__" frontend/index.html || echo "✅ Placeholder replaced successfully"
+
+      # ── 4. Deploy frontend/ to gh-pages branch ───────────────────────────────
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend
+          publish_branch: gh-pages
+          commit_message: "chore: deploy frontend [skip ci]"
+          force_orphan: true

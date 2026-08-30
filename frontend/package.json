@@ -1,0 +1,17 @@
+{
+  "name": "blog-frontend",
+  "version": "1.0.0",
+  "description": "AngularJS Frontend for Developer-Centric Personal Blog Platform",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve ."
+  },
+  "keywords": [
+    "angularjs",
+    "blog",
+    "frontend",
+    "github-pages"
+  ],
+  "author": "",
+  "license": "ISC"
+}

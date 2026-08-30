@@ -1,0 +1,58 @@
+<div class="page-container home-view">
+    <!-- Hero / Platform Intro -->
+    <section class="hero-section">
+        <h1 class="hero-title">Developer-Centric Personal Blog Platform</h1>
+        <p class="hero-subtitle">Simple thoughts, tutorials, and experiences from a developer.</p>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- Alert / Error message if any -->
+    <div ng-if="error" class="alert-box alert-error">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+            <p>{{ error }}</p>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div ng-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading blogs from database...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div ng-if="!loading && !error && posts.length === 0" class="empty-state">
+        <div class="empty-icon">&lt;/&gt;</div>
+        <h3>No published blogs yet</h3>
+        <p>Be the first to publish your thoughts and engineering experiences.</p>
+        <a href="#!/admin/create" class="btn btn-primary" id="empty-create-btn">Write Your First Blog</a>
+    </div>
+
+    <!-- Blog Posts Stream -->
+    <section class="blog-stream" ng-if="!loading && posts.length > 0">
+        <div class="stream-header">
+            <h2>Latest Blogs ({{ posts.length }})</h2>
+        </div>
+
+        <article class="blog-card" ng-repeat="post in posts track by post.id">
+            <div class="card-meta">
+                <span class="meta-date">{{ formatDate(post.created_at) }}</span>
+                <span class="meta-separator">&bull;</span>
+                <span class="meta-readtime">{{ getReadTime(post.content) }}</span>
+            </div>
+            
+            <h3 class="card-title">
+                <a href="#!/blog/{{ post.id }}" class="card-title-link" id="post-title-{{ post.id }}">{{ post.title }}</a>
+            </h3>
+
+            <p class="card-snippet">{{ getSnippet(post.content, 180) }}</p>
+
+            <div class="card-footer">
+                <a href="#!/blog/{{ post.id }}" class="btn-read-more" id="read-more-{{ post.id }}">
+                    Read More <span class="arrow">&rarr;</span>
+                </a>
+            </div>
+        </article>
+    </section>
+</div>

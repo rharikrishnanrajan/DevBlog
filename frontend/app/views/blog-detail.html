@@ -1,0 +1,62 @@
+<div class="page-container blog-detail-view">
+<!-- Navigation Back Link -->
+<div class="detail-nav-bar">
+    <a href="#!/" class="btn btn-outline" id="back-to-blogs-btn">
+        <span class="arrow">&larr;</span> Back to Blogs
+    </a>
+    <a href="#!/admin/edit/{{ post.id }}" class="btn btn-secondary" id="edit-current-blog-btn" ng-if="post">
+        ✏️ Edit Blog
+    </a>
+    <button type="button" class="btn btn-danger" id="delete-current-blog-btn" ng-if="post" ng-click="deleteBlog(post)">
+        🗑️ Delete Blog
+    </button>
+</div>
+
+    <!-- Loading State -->
+    <div ng-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading blog content...</p>
+    </div>
+
+    <!-- Error State -->
+    <div ng-if="error" class="alert-box alert-error">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+            <h3>Error Loading Blog</h3>
+            <p>{{ error }}</p>
+            <a href="#!/" class="btn btn-outline" style="margin-top: 1rem;">Return to Homepage</a>
+        </div>
+    </div>
+
+    <!-- Blog Article Container -->
+    <article class="article-container" ng-if="!loading && post">
+        <header class="article-header">
+            <h1 class="article-title">{{ post.title }}</h1>
+            <div class="article-meta">
+                <span class="meta-date">Published on {{ formatDate(post.created_at) }}</span>
+                <span class="meta-separator" ng-if="post.updated_at && post.updated_at !== post.created_at">&bull;</span>
+                <span class="meta-updated" ng-if="post.updated_at && post.updated_at !== post.created_at">Updated {{ formatDate(post.updated_at) }}</span>
+                <span class="meta-separator">&bull;</span>
+                <span class="meta-readtime">{{ getReadTime(post.content) }}</span>
+            </div>
+        </header>
+
+        <div class="divider"></div>
+
+        <!-- Blog Main Content (Preserving line breaks and formatting) -->
+        <div class="article-body">
+            <p class="article-paragraph" ng-repeat="paragraph in post.content.split('\n') track by $index" ng-if="paragraph.trim().length > 0">
+                {{ paragraph }}
+            </p>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- Article Footer with back navigation -->
+        <footer class="article-footer">
+            <a href="#!/" class="btn btn-primary" id="footer-back-btn">
+                <span class="arrow">&larr;</span> Back to Blogs
+            </a>
+        </footer>
+    </article>
+</div>

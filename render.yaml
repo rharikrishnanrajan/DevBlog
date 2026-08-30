@@ -1,0 +1,56 @@
+# render.yaml — Render Infrastructure as Code
+# Docs: https://render.com/docs/infrastructure-as-code
+#
+# HOW TO USE:
+#   1. Push this repo to GitHub.
+#   2. Go to https://dashboard.render.com/
+#   3. Click "New" → "Blueprint" → connect your GitHub repo.
+#   4. Render will detect this file and auto-configure the backend service.
+#   5. Set the environment variable values in the Render dashboard
+#      (DB_PASSWORD in particular — do NOT commit real secrets here).
+
+services:
+  - type: web
+    name: developer-blog-backend
+    runtime: node
+    rootDir: backend
+    region: singapore         # Change to your nearest region (us-east, us-west, eu-west, etc.)
+    plan: free                # Free tier; upgrade to starter for always-on
+
+    buildCommand: npm install
+    startCommand: npm start
+
+    # Health check — Render uses this to confirm the service is up
+    healthCheckPath: /api/health
+
+    # Auto-deploy on every push to main branch
+    autoDeploy: true
+
+    envVars:
+      # ── Server ──────────────────────────────────────────────────────────────
+      - key: PORT
+        value: 10000          # Render's internal port (always 10000 for web services)
+
+      # ── Aiven MySQL ─────────────────────────────────────────────────────────
+      #    Set real values in the Render dashboard → Environment tab.
+      #    Do NOT commit actual passwords here.
+      - key: DB_HOST
+        sync: false           # Set manually in Render dashboard
+
+      - key: DB_PORT
+        sync: false
+
+      - key: DB_USER
+        sync: false
+
+      - key: DB_PASSWORD
+        sync: false           # ← most important: keep this secret
+
+      - key: DB_NAME
+        value: blog
+
+      # ── CORS ─────────────────────────────────────────────────────────────────
+      #    Set this to your GitHub Pages URL after deploying the frontend.
+      #    Example: https://yourusername.github.io
+      - key: FRONTEND_URL
+        sync: false           # Set manually in Render dashboard
