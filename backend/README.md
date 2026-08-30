@@ -1,6 +1,6 @@
 # Backend - Developer-Centric Personal Blog Platform
 
-Node.js + Express.js REST API backend with MySQL (Aiven MySQL compatible).
+Pure Node.js (`http` module) REST API backend with MySQL (Aiven MySQL compatible).
 
 ## Prerequisites
 

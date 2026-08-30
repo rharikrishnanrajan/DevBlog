@@ -1,7 +1,7 @@
 {
   "name": "blog-backend",
   "version": "1.0.0",
-  "description": "REST API backend for Developer-Centric Personal Blog Platform",
+  "description": "Pure Node.js REST API backend for Developer-Centric Personal Blog Platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,16 +9,15 @@
   },
   "keywords": [
     "blog",
-    "express",
+    "nodejs",
     "mysql",
     "rest-api"
   ],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "express": "^4.19.2",
     "mysql2": "^3.11.0"
   }
 }
+
