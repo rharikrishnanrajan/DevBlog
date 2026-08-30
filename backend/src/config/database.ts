@@ -8,7 +8,7 @@ const dbHost = process.env.DB_HOST || 'localhost';
 const dbPort = parseInt(process.env.DB_PORT || '3306', 10);
 const dbUser = process.env.DB_USER || 'root';
 const dbPassword = process.env.DB_PASSWORD || '';
-const dbName = process.env.DB_NAME || 'defaultdb';
+const dbName = process.env.DB_NAME || 'blog';
 
 // Configure secure SSL options for managed/cloud MySQL (e.g. Aiven, PlanetScale, AWS RDS)
 const sslConfig =
@@ -26,9 +26,9 @@ export const pool: Pool = mysql.createPool({
   password: dbPassword,
   database: dbName,
   waitForConnections: true,
-  connectionLimit: 5, // Reduced to prevent exhausting DB connections
-  queueLimit: 10, // Limit queue size when all connections are in use
-  connectTimeout: 10000, // 10 seconds
+  connectionLimit: 10,
+  queueLimit: 20,
+  connectTimeout: 15000,
   ssl: sslConfig
 });
 
@@ -36,6 +36,10 @@ let dbConnected = false;
 
 export function isDbConnected(): boolean {
   return dbConnected;
+}
+
+export function setDbConnected(state: boolean): void {
+  dbConnected = state;
 }
 
 // Auto-initialize posts table on startup

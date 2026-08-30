@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { ResultSetHeader } from 'mysql2';
-import pool, { isDbConnected } from '../config/database';
+import pool, { isDbConnected, setDbConnected } from '../config/database';
 import { BlogPost, BlogPostRow, CreatePostInput, UpdatePostInput } from '../types/post';
 
 // ── Validation Constants ─────────────────────────────────────────────────────
@@ -48,20 +48,18 @@ let nextFallbackId = 3;
 
 // GET /api/posts - Get all blog posts
 export const getAllPosts = async (_req: Request, res: Response): Promise<void> => {
-  if (isDbConnected()) {
-    try {
-      // Using execute for prepared statement execution
-      const [rows] = await pool.execute<BlogPostRow[]>(
-        'SELECT id, title, content, created_at, updated_at FROM posts ORDER BY created_at DESC'
-      );
-      res.status(200).json(rows);
-      return;
-    } catch (error: unknown) {
-      console.warn('MySQL query failed, falling back to memory store:', (error as Error).message);
-    }
+  try {
+    const [rows] = await pool.execute<BlogPostRow[]>(
+      'SELECT id, title, content, created_at, updated_at FROM posts ORDER BY created_at DESC'
+    );
+    setDbConnected(true);
+    res.status(200).json(rows);
+    return;
+  } catch (error: unknown) {
+    console.warn('MySQL query failed, attempting memory fallback:', (error as Error).message);
   }
 
-  // Fallback to in-memory store
+  // Fallback to in-memory store if DB is offline
   const sorted = [...fallbackPosts].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
@@ -77,26 +75,24 @@ export const getPostById = async (req: Request<{ id: string }>, res: Response): 
     return;
   }
 
-  if (isDbConnected()) {
-    try {
-      // Binary prepared statement: pool.execute guarantees strict parameter separation (100% immune to SQLi)
-      const [rows] = await pool.execute<BlogPostRow[]>(
-        'SELECT id, title, content, created_at, updated_at FROM posts WHERE id = ?',
-        [validId]
-      );
+  try {
+    const [rows] = await pool.execute<BlogPostRow[]>(
+      'SELECT id, title, content, created_at, updated_at FROM posts WHERE id = ?',
+      [validId]
+    );
+    setDbConnected(true);
 
-      if (rows && rows.length > 0) {
-        res.status(200).json(rows[0]);
-        return;
-      }
-      res.status(404).json({ message: 'Blog not found' });
+    if (rows && rows.length > 0) {
+      res.status(200).json(rows[0]);
       return;
-    } catch (error: unknown) {
-      console.warn(`MySQL query for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
+    res.status(404).json({ message: 'Blog not found' });
+    return;
+  } catch (error: unknown) {
+    console.warn(`MySQL query for post #${validId} failed:`, (error as Error).message);
   }
 
-  // Fallback lookup
+  // Fallback lookup if DB is offline
   const post = fallbackPosts.find((p) => p.id === validId);
   if (!post) {
     res.status(404).json({ message: 'Blog not found' });
@@ -139,38 +135,25 @@ export const createPost = async (
     return;
   }
 
-  if (isDbConnected()) {
-    try {
-      // Binary prepared statement execution
-      const [result] = await pool.execute<ResultSetHeader>(
-        'INSERT INTO posts (title, content) VALUES (?, ?)',
-        [cleanTitle, cleanContent]
-      );
+  try {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'INSERT INTO posts (title, content) VALUES (?, ?)',
+      [cleanTitle, cleanContent]
+    );
+    setDbConnected(true);
 
-      res.status(201).json({
-        message: 'Blog created successfully',
-        id: result.insertId
-      });
-      return;
-    } catch (error: unknown) {
-      console.warn('MySQL insert failed, falling back to memory store:', (error as Error).message);
-    }
+    res.status(201).json({
+      message: 'Blog created successfully',
+      id: result.insertId
+    });
+    return;
+  } catch (error: unknown) {
+    const errMsg = (error as Error).message;
+    console.error('MySQL insert error:', errMsg);
+    res.status(500).json({
+      message: `Failed to save post to MySQL database: ${errMsg}`
+    });
   }
-
-  // Fallback creation
-  const newPost: BlogPost = {
-    id: nextFallbackId++,
-    title: cleanTitle,
-    content: cleanContent,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  };
-  fallbackPosts.unshift(newPost);
-
-  res.status(201).json({
-    message: 'Blog created successfully',
-    id: newPost.id
-  });
 };
 
 // PUT /api/posts/:id - Update an existing blog post
@@ -214,41 +197,27 @@ export const updatePost = async (
     return;
   }
 
-  if (isDbConnected()) {
-    try {
-      // Binary prepared statement execution
-      const [result] = await pool.execute<ResultSetHeader>(
-        'UPDATE posts SET title = ?, content = ? WHERE id = ?',
-        [cleanTitle, cleanContent, validId]
-      );
+  try {
+    const [result] = await pool.execute<ResultSetHeader>(
+      'UPDATE posts SET title = ?, content = ? WHERE id = ?',
+      [cleanTitle, cleanContent, validId]
+    );
+    setDbConnected(true);
 
-      if (result.affectedRows === 0) {
-        res.status(404).json({ message: 'Blog not found' });
-        return;
-      }
-
-      res.status(200).json({ message: 'Blog updated successfully' });
+    if (result.affectedRows === 0) {
+      res.status(404).json({ message: 'Blog not found' });
       return;
-    } catch (error: unknown) {
-      console.warn(`MySQL update for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
-  }
 
-  // Fallback update
-  const index = fallbackPosts.findIndex((p) => p.id === validId);
-  if (index === -1) {
-    res.status(404).json({ message: 'Blog not found' });
+    res.status(200).json({ message: 'Blog updated successfully' });
     return;
+  } catch (error: unknown) {
+    const errMsg = (error as Error).message;
+    console.error(`MySQL update error for post #${validId}:`, errMsg);
+    res.status(500).json({
+      message: `Failed to update post in MySQL database: ${errMsg}`
+    });
   }
-
-  fallbackPosts[index] = {
-    ...fallbackPosts[index],
-    title: cleanTitle,
-    content: cleanContent,
-    updated_at: new Date().toISOString()
-  };
-
-  res.status(200).json({ message: 'Blog updated successfully' });
 };
 
 // DELETE /api/posts/:id - Delete a blog post
@@ -260,30 +229,22 @@ export const deletePost = async (req: Request<{ id: string }>, res: Response): P
     return;
   }
 
-  if (isDbConnected()) {
-    try {
-      // Binary prepared statement execution
-      const [result] = await pool.execute<ResultSetHeader>('DELETE FROM posts WHERE id = ?', [validId]);
+  try {
+    const [result] = await pool.execute<ResultSetHeader>('DELETE FROM posts WHERE id = ?', [validId]);
+    setDbConnected(true);
 
-      if (result.affectedRows === 0) {
-        res.status(404).json({ message: 'Blog not found' });
-        return;
-      }
-
-      res.status(200).json({ message: 'Blog deleted successfully' });
+    if (result.affectedRows === 0) {
+      res.status(404).json({ message: 'Blog not found' });
       return;
-    } catch (error: unknown) {
-      console.warn(`MySQL delete for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
-  }
 
-  // Fallback delete
-  const index = fallbackPosts.findIndex((p) => p.id === validId);
-  if (index === -1) {
-    res.status(404).json({ message: 'Blog not found' });
+    res.status(200).json({ message: 'Blog deleted successfully' });
     return;
+  } catch (error: unknown) {
+    const errMsg = (error as Error).message;
+    console.error(`MySQL delete error for post #${validId}:`, errMsg);
+    res.status(500).json({
+      message: `Failed to delete post from MySQL database: ${errMsg}`
+    });
   }
-
-  fallbackPosts.splice(index, 1);
-  res.status(200).json({ message: 'Blog deleted successfully' });
 };

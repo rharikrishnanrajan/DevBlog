@@ -17,8 +17,19 @@ app.constant('API_CONFIG', {
             }
         } catch(e) {}
 
-        if (window.location && window.location.protocol && window.location.protocol.startsWith('http')) {
-            return '/api';
+        // If running locally on a separate dev port (like VS Code Live Server on 5500 or file protocol)
+        if (window.location) {
+            var hostname = window.location.hostname;
+            var port = window.location.port;
+            if (hostname === 'localhost' || hostname === '127.0.0.1') {
+                if (port === '5000') {
+                    return '/api';
+                }
+                return 'http://localhost:5000/api';
+            }
+            if (window.location.protocol && window.location.protocol.startsWith('http')) {
+                return '/api';
+            }
         }
         return 'http://localhost:5000/api';
     })()

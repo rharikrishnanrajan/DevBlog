@@ -32,9 +32,12 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
                 return response;
             })
             .catch(function(err) {
-                console.warn('Backend unavailable, using local storage:', err);
+                console.warn('Backend unavailable, using cached local storage:', err);
                 var posts = getLocalPosts();
-                return { data: posts };
+                if (posts.length > 0) {
+                    return { data: posts };
+                }
+                return $q.reject(err);
             });
     };
 
@@ -56,33 +59,7 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     service.create = function(postData) {
         return $http.post(baseUrl + '/posts', postData)
             .then(function(response) {
-                // On success, also update localStorage to reflect the new state
-                var posts = getLocalPosts();
-                var newPost = {
-                    id: response.data.id,
-                    title: postData.title,
-                    content: postData.content,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-                posts.unshift(newPost);
-                saveLocalPosts(posts);
                 return response;
-            })
-            .catch(function(err) {
-                console.warn('Backend unavailable, saving post to local storage:', err);
-                var posts = getLocalPosts();
-                var newId = posts.length > 0 ? Math.max.apply(Math, posts.map(function(p) { return p.id; })) + 1 : 1;
-                var newPost = {
-                    id: newId,
-                    title: postData.title,
-                    content: postData.content,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
-                posts.unshift(newPost);
-                saveLocalPosts(posts);
-                return { data: { message: 'Blog created successfully', id: newId } };
             });
     };
 
@@ -90,29 +67,7 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     service.update = function(id, postData) {
         return $http.put(baseUrl + '/posts/' + id, postData)
             .then(function(response) {
-                // On success, update the post in localStorage
-                var posts = getLocalPosts();
-                var index = posts.findIndex(function(p) { return p.id == id; });
-                if (index !== -1) {
-                    posts[index].title = postData.title;
-                    posts[index].content = postData.content;
-                    posts[index].updated_at = new Date().toISOString();
-                    saveLocalPosts(posts);
-                }
                 return response;
-            })
-            .catch(function(err) {
-                console.warn('Backend unavailable, updating post in local storage:', err);
-                var posts = getLocalPosts();
-                var index = posts.findIndex(function(p) { return p.id == id; });
-                if (index !== -1) {
-                    posts[index].title = postData.title;
-                    posts[index].content = postData.content;
-                    posts[index].updated_at = new Date().toISOString();
-                    saveLocalPosts(posts);
-                    return { data: { message: 'Blog updated successfully' } };
-                }
-                return $q.reject(err);
             });
     };
 
@@ -120,18 +75,7 @@ app.factory('BlogService', ['$http', '$q', 'API_CONFIG', function($http, $q, API
     service.delete = function(id) {
         return $http.delete(baseUrl + '/posts/' + id)
             .then(function(response) {
-                // On success, remove the post from localStorage
-                var posts = getLocalPosts();
-                var filtered = posts.filter(function(p) { return p.id != id; });
-                saveLocalPosts(filtered);
                 return response;
-            })
-            .catch(function(err) {
-                console.warn('Backend unavailable, deleting post from local storage:', err);
-                var posts = getLocalPosts();
-                var filtered = posts.filter(function(p) { return p.id != id; });
-                saveLocalPosts(filtered);
-                return { data: { message: 'Blog deleted successfully' } };
             });
     };
 
