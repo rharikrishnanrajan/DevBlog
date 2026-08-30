@@ -36,25 +36,24 @@ jobs:
 
       # ── 3. Inject the production API URL into index.html ────────────────────
       #    Replaces the __INJECT_API_URL__ placeholder with the real backend URL.
-      #    Set the API_URL secret in: Settings > Secrets and variables > Actions
-      #    Example value: https://my-blog-backend.onrender.com/api
+      #    Set the API_URL secret or variable in: Settings > Secrets and variables > Actions
+      #    Example value: https://developer-blog-backend.onrender.com/api
       - name: Inject API URL into index.html
         env:
-          API_URL: ${{ secrets.API_URL }}
+          API_URL: ${{ vars.API_URL || secrets.API_URL }}
         run: |
+          TARGET_URL="${API_URL:-https://developer-blog-backend.onrender.com/api}"
           if [ -z "$API_URL" ]; then
-            echo "ERROR: API_URL secret is not set in GitHub → Settings → Secrets."
-            echo "Please add it and re-run the workflow."
-            exit 1
+            echo "::warning::API_URL is not set in GitHub secrets or variables. Using default fallback: ${TARGET_URL}"
           fi
-          sed -i "s|__INJECT_API_URL__|${API_URL}|g" frontend/index.html
-          echo "Injected API_URL: ${API_URL}"
+          sed -i "s|__INJECT_API_URL__|${TARGET_URL}|g" frontend/index.html
+          echo "Injected API_URL: ${TARGET_URL}"
 
       # ── 4. Verify injection worked (grep for leftover placeholder = bad) ──────
       - name: Verify injection
         run: |
           if grep -q "__INJECT_API_URL__" frontend/index.html; then
-            echo "ERROR: Placeholder was NOT replaced. Check API_URL secret."
+            echo "ERROR: Placeholder was NOT replaced. Check API_URL configuration."
             exit 1
           fi
           echo "Injection verified. Live API_URL in index.html:"
