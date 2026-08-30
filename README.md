@@ -20,38 +20,38 @@ The **Developer-Centric Personal Blog Platform** is built with simplicity, speed
 
 ## 2. Technology Stack
 
-- **Frontend**: AngularJS (1.8.x), HTML5, CSS3, JavaScript (SPA with Hash-Bang Routing for GitHub Pages).
+- **Frontend**: AngularJS (1.8.x), HTML5, CSS3, JavaScript (SPA with Hash-Bang Routing).
 - **Backend**: Node.js, Express.js (v4.21.2), TypeScript (v5.7.2), REST API (`mysql2/promise`, `cors`, `dotenv`).
 - **Database**: Aiven MySQL 8.x (`blog` database, `posts` table).
 - **Hosting / Deployment**:
-  - Frontend: **GitHub Pages**
-  - Backend: **Render** (or Railway / Heroku / VPS)
-  - Database: **Aiven Cloud MySQL**
+   - Frontend: **Vercel**
+   - Backend: **Render** (or Railway / Heroku / VPS)
+   - Database: **Aiven Cloud MySQL**
 
 ---
 
 ## 3. Architecture & Project Structure
 
 ```text
-                  ┌──────────────────────┐
-                  │     GitHub Pages     │
-                  │      AngularJS       │
-                  │   Frontend (SPA)     │
-                  └──────────┬───────────┘
-                             │
-                             │ REST API (JSON / CORS)
-                             ▼
-                  ┌──────────────────────┐
-                  │ Express + TypeScript │
-                  │     REST Backend     │
-                  └──────────┬───────────┘
-                             │
-                             │ MySQL (SSL / mysql2 Pool)
-                             ▼
-                  ┌──────────────────────┐
-                  │      Aiven MySQL     │
-                  │     Database: blog   │
-                  └──────────────────────┘
+┌──────────────────────┐
+                   │     Vercel Hosting     │
+                   │      AngularJS       │
+                   │   Frontend (SPA)     │
+                   └──────────┬───────────┘
+                              │
+                              │ REST API (JSON / CORS)
+                              ▼
+                   ┌──────────────────────┐
+                   │ Express + TypeScript │
+                   │     REST Backend     │
+                   └──────────┬───────────┘
+                              │
+                              │ MySQL (SSL / mysql2 Pool)
+                              ▼
+                   ┌──────────────────────┐
+                   │      Aiven MySQL     │
+                   │     Database: blog   │
+                   └──────────────────────┘
 ```
 
 ### Folder Structure
@@ -61,7 +61,7 @@ Developer-Centric Personal Blog Platform/
 │
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml          # GitHub Actions: auto-deploy frontend to GitHub Pages
+
 │
 ├── database/
 │   └── schema.sql              # MySQL table schema
@@ -145,7 +145,7 @@ DB_USER=avnadmin
 DB_PASSWORD=your_aiven_password
 DB_NAME=blog
 
-# Optional CORS origin (e.g. your GitHub Pages domain)
+# Optional CORS origin (e.g. your Vercel domain)
 FRONTEND_URL=*
 ```
 
@@ -250,13 +250,6 @@ npm --prefix backend start
 Open **`http://localhost:5000`** in your browser to access both the blog UI and REST API.
 
 ---
-
-### Option D: Decoupled Deployment (GitHub Pages + External Backend)
-If you also wish to keep a separate static copy on GitHub Pages:
-1. In your GitHub repository → **Settings** → **Secrets and variables** → **Actions**, add a repository secret or variable named `API_URL` pointing to your deployed backend URL (e.g. `https://your-app.onrender.com/api`).
-2. Push to `main`. The GitHub Actions workflow (`.github/workflows/deploy.yml`) will build and publish the static frontend to GitHub Pages.
-
-
 
 ---
 

@@ -7,7 +7,7 @@ var app = angular.module('blogApp', ['ngRoute', 'ngSanitize']);
 // 2. User dynamic setting: localStorage.getItem('devblog_api_url')
 // 3. Local Development: 'http://localhost:5000/api'
 // 4. Unified Full-Stack Cloud Host (Render/Railway): '/api'
-// 5. GitHub Pages (Static): Fallback to resilient client-side storage
+// 5. Static Host: Fallback to resilient client-side storage
 app.constant('API_CONFIG', {
     BASE_URL: (function() {
         // 1. Check build-time injected API_URL
@@ -41,7 +41,7 @@ app.constant('API_CONFIG', {
                 return 'http://localhost:5000/api';
             }
 
-            // GitHub Pages or static host without backend URL
+            // Static host without backend URL
             if (hostname.endsWith('.github.io') || window.location.protocol === 'file:') {
                 return ''; // Triggers offline/client-side storage mode
             }

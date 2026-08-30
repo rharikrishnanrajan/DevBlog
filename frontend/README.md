@@ -1,11 +1,11 @@
 # Frontend - Developer-Centric Personal Blog Platform
 
-Lightweight AngularJS Single-Page Application designed for deployment to **GitHub Pages**.
+Lightweight AngularJS Single-Page Application designed for deployment to static hosts (e.g., Vercel).
 
 ## Technology Stack
 
 - AngularJS 1.8.x
-- `ngRoute` (Hash-bang `#!/` routing for GitHub Pages reload compatibility)
+- `ngRoute` (Hash-bang `#!/` routing for SPA reload compatibility)
 - `ngSanitize`
 - HTML5 & CSS3 (Developer-centric typography & responsive layout)
 
@@ -64,12 +64,4 @@ app.constant('API_CONFIG', {
 });
 ```
 
-## Deploying to GitHub Pages
 
-1. Push your repository to GitHub.
-2. In your GitHub repository:
-   - Go to **Settings** > **Pages**.
-   - Under **Build and deployment**, select **Deploy from a branch**.
-   - Select branch `main` and folder `/frontend` (or root if frontend is at root).
-   - Click **Save**.
-3. Your blog frontend will be live at `https://<username>.github.io/<repository-name>/`.
