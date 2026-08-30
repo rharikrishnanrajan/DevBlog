@@ -15,6 +15,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const isVercel = process.env.VERCEL === '1';
 
 // Explicitly disable X-Powered-By header to prevent technology stack disclosure
 app.disable('x-powered-by');
@@ -24,15 +25,6 @@ app.set('trust proxy', 1);
 
 // Apply comprehensive HTTP security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
 app.use(securityHeaders);
-
-// Resolve frontend directory path across dev and production build structures
-const candidateFrontendPaths = [
-  path.resolve(__dirname, '../../frontend'),
-  path.resolve(__dirname, '../frontend'),
-  path.resolve(process.cwd(), 'frontend'),
-  path.resolve(process.cwd(), '../frontend')
-];
-const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || candidateFrontendPaths[0];
 
 // CORS Configuration
 const frontendUrl = process.env.FRONTEND_URL;
@@ -59,10 +51,22 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
   next();
 });
 
-// Serve Static Frontend Assets (HTML, CSS, JS, Images)
-if (fs.existsSync(frontendPath)) {
-  console.log(`📁 Serving frontend static assets from: ${frontendPath}`);
-  app.use(express.static(frontendPath));
+// Serve Static Frontend Assets (HTML, CSS, JS, Images) - only when not in Vercel
+// In Vercel, frontend is served separately via static hosting
+if (!isVercel) {
+  // Resolve frontend directory path across dev and production build structures
+  const candidateFrontendPaths = [
+    path.resolve(__dirname, '../../frontend'),
+    path.resolve(__dirname, '../frontend'),
+    path.resolve(process.cwd(), 'frontend'),
+    path.resolve(process.cwd(), '../frontend')
+  ];
+  const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || candidateFrontendPaths[0];
+  
+  if (fs.existsSync(frontendPath)) {
+    console.log(`dY"? Serving frontend static assets from: ${frontendPath}`);
+    app.use(express.static(frontendPath));
+  }
 }
 
 // Health Check Endpoint
@@ -86,26 +90,38 @@ app.all('/api/*', (_req: Request, res: Response) => {
 });
 
 // SPA Catch-All: Serve frontend index.html for all non-API web traffic
-app.get('*', (_req: Request, res: Response) => {
-  const indexPath = path.join(frontendPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Frontend index.html not found');
-  }
-});
+// Only when not in Vercel (in Vercel, frontend is handled by static hosting)
+if (!isVercel) {
+  app.get('*', (_req: Request, res: Response) => {
+    // Resolve frontend directory path across dev and production build structures
+    const candidateFrontendPaths = [
+      path.resolve(__dirname, '../../frontend'),
+      path.resolve(__dirname, '../frontend'),
+      path.resolve(process.cwd(), 'frontend'),
+      path.resolve(process.cwd(), '../frontend')
+    ];
+    const frontendPath = candidateFrontendPaths.find((p) => fs.existsSync(p)) || candidateFrontendPaths[0];
+    
+    const indexPath = path.join(frontendPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).send('Frontend index.html not found');
+    }
+  });
+}
 
 // Global Error Handler Middleware
 app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled server error:', err.message || err);
-  if (err.name === 'SyntaxError' || err.message?.includes('JSON')) {
-    res.status(400).json({ message: 'Invalid JSON body provided' });
-    return;
-  }
-  if (err.status === 413 || err.message === 'Payload too large') {
-    res.status(413).json({ message: 'Request payload is too large' });
-    return;
-  }
+if (err.name === 'SyntaxError' || err.message?.includes('JSON')) {
+      res.status(400).json({ message: 'Invalid JSON body provided' });
+      return;
+    }
+    if (err.status === 413 || err.message === 'Payload too large') {
+      res.status(413).json({ message: 'Request payload is too large' });
+      return;
+    }
   // Generic safe error message to prevent internal system or database disclosure
   res.status(500).json({ message: 'An unexpected error occurred on the server' });
 });
@@ -115,12 +131,15 @@ initDatabase().catch((err) => {
   console.error('Database initialization error:', err);
 });
 
-// Start Express Server
-app.listen(PORT, () => {
-  console.log(`🚀 Unified Blog Application running securely on http://localhost:${PORT}`);
-  console.log(`🌐 Frontend UI: http://localhost:${PORT}`);
-  console.log(`📡 REST API:   http://localhost:${PORT}/api/posts`);
-});
+// Start Express Server only when not in Vercel
+// In Vercel, the app is exported as a serverless function
+if (!isVercel) {
+  app.listen(PORT, () => {
+    console.log(`dYs? Unified Blog Application running securely on http://localhost:${PORT}`);
+    console.log(`dYO? Frontend UI: http://localhost:${PORT}`);
+    console.log(`dY"� REST API:   http://localhost:${PORT}/api/posts`);
+  });
+}
 
 export default app;
 
