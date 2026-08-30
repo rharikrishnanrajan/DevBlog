@@ -3,6 +3,30 @@ import { ResultSetHeader } from 'mysql2';
 import pool, { isDbConnected } from '../config/database';
 import { BlogPostRow, CreatePostInput, UpdatePostInput } from '../types/post';
 
+// ── Validation Constants ─────────────────────────────────────────────────────
+const MAX_TITLE_LENGTH = 255;
+const MAX_CONTENT_LENGTH = 65535;
+
+/**
+ * Validates and safely parses an ID parameter into a positive 32-bit integer.
+ * Guards against non-integer inputs, SQL injection strings, and integer overflow attacks.
+ */
+function parseAndValidateId(idParam: string | undefined): number | null {
+  if (!idParam || typeof idParam !== 'string') {
+    return null;
+  }
+  const trimmed = idParam.trim();
+  // Must be strictly digits (1 to 10 digits), positive non-zero
+  if (!/^[1-9]\d{0,9}$/.test(trimmed)) {
+    return null;
+  }
+  const num = parseInt(trimmed, 10);
+  if (isNaN(num) || num <= 0 || num > 2147483647) {
+    return null;
+  }
+  return num;
+}
+
 // In-memory fallback post store (ensures site is functional even if database is offline or unconfigured)
 let fallbackPosts: BlogPostRow[] = [
   {
@@ -26,7 +50,8 @@ let nextFallbackId = 3;
 export const getAllPosts = async (_req: Request, res: Response): Promise<void> => {
   if (isDbConnected()) {
     try {
-      const [rows] = await pool.query<BlogPostRow[]>(
+      // Using execute for prepared statement execution
+      const [rows] = await pool.execute<BlogPostRow[]>(
         'SELECT id, title, content, created_at, updated_at FROM posts ORDER BY created_at DESC'
       );
       res.status(200).json(rows);
@@ -45,14 +70,19 @@ export const getAllPosts = async (_req: Request, res: Response): Promise<void> =
 
 // GET /api/posts/:id - Get a single blog post by ID
 export const getPostById = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-  const { id } = req.params;
-  const numId = parseInt(id, 10);
+  const validId = parseAndValidateId(req.params.id);
+
+  if (validId === null) {
+    res.status(400).json({ message: 'Invalid blog post ID. ID must be a positive integer.' });
+    return;
+  }
 
   if (isDbConnected()) {
     try {
-      const [rows] = await pool.query<BlogPostRow[]>(
+      // Binary prepared statement: pool.execute guarantees strict parameter separation (100% immune to SQLi)
+      const [rows] = await pool.execute<BlogPostRow[]>(
         'SELECT id, title, content, created_at, updated_at FROM posts WHERE id = ?',
-        [id]
+        [validId]
       );
 
       if (rows && rows.length > 0) {
@@ -62,12 +92,12 @@ export const getPostById = async (req: Request<{ id: string }>, res: Response): 
       res.status(404).json({ message: 'Blog not found' });
       return;
     } catch (error: unknown) {
-      console.warn(`MySQL query for post #${id} failed, falling back to memory store:`, (error as Error).message);
+      console.warn(`MySQL query for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
   }
 
   // Fallback lookup
-  const post = fallbackPosts.find((p) => p.id === numId);
+  const post = fallbackPosts.find((p) => p.id === validId);
   if (!post) {
     res.status(404).json({ message: 'Blog not found' });
     return;
@@ -82,9 +112,17 @@ export const createPost = async (
 ): Promise<void> => {
   const { title, content } = req.body || {};
 
-  // Basic input validation
+  // Strict input validation
   if (!title || typeof title !== 'string' || !title.trim()) {
     res.status(400).json({ message: 'Title is required and cannot be empty' });
+    return;
+  }
+
+  const cleanTitle = title.trim();
+  if (cleanTitle.length > MAX_TITLE_LENGTH) {
+    res.status(400).json({
+      message: `Title is too long. Maximum allowed length is ${MAX_TITLE_LENGTH} characters.`
+    });
     return;
   }
 
@@ -93,11 +131,20 @@ export const createPost = async (
     return;
   }
 
+  const cleanContent = content.trim();
+  if (cleanContent.length > MAX_CONTENT_LENGTH) {
+    res.status(400).json({
+      message: `Content is too long. Maximum allowed length is ${MAX_CONTENT_LENGTH} characters.`
+    });
+    return;
+  }
+
   if (isDbConnected()) {
     try {
-      const [result] = await pool.query<ResultSetHeader>(
+      // Binary prepared statement execution
+      const [result] = await pool.execute<ResultSetHeader>(
         'INSERT INTO posts (title, content) VALUES (?, ?)',
-        [title.trim(), content.trim()]
+        [cleanTitle, cleanContent]
       );
 
       res.status(201).json({
@@ -113,8 +160,8 @@ export const createPost = async (
   // Fallback creation
   const newPost: BlogPostRow = {
     id: nextFallbackId++,
-    title: title.trim(),
-    content: content.trim(),
+    title: cleanTitle,
+    content: cleanContent,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString()
   };
@@ -131,13 +178,26 @@ export const updatePost = async (
   req: Request<{ id: string }, unknown, UpdatePostInput>,
   res: Response
 ): Promise<void> => {
-  const { id } = req.params;
-  const numId = parseInt(id, 10);
+  const validId = parseAndValidateId(req.params.id);
+
+  if (validId === null) {
+    res.status(400).json({ message: 'Invalid blog post ID. ID must be a positive integer.' });
+    return;
+  }
+
   const { title, content } = req.body || {};
 
-  // Basic input validation
+  // Strict input validation
   if (!title || typeof title !== 'string' || !title.trim()) {
     res.status(400).json({ message: 'Title is required and cannot be empty' });
+    return;
+  }
+
+  const cleanTitle = title.trim();
+  if (cleanTitle.length > MAX_TITLE_LENGTH) {
+    res.status(400).json({
+      message: `Title is too long. Maximum allowed length is ${MAX_TITLE_LENGTH} characters.`
+    });
     return;
   }
 
@@ -146,11 +206,20 @@ export const updatePost = async (
     return;
   }
 
+  const cleanContent = content.trim();
+  if (cleanContent.length > MAX_CONTENT_LENGTH) {
+    res.status(400).json({
+      message: `Content is too long. Maximum allowed length is ${MAX_CONTENT_LENGTH} characters.`
+    });
+    return;
+  }
+
   if (isDbConnected()) {
     try {
-      const [result] = await pool.query<ResultSetHeader>(
+      // Binary prepared statement execution
+      const [result] = await pool.execute<ResultSetHeader>(
         'UPDATE posts SET title = ?, content = ? WHERE id = ?',
-        [title.trim(), content.trim(), id]
+        [cleanTitle, cleanContent, validId]
       );
 
       if (result.affectedRows === 0) {
@@ -161,12 +230,12 @@ export const updatePost = async (
       res.status(200).json({ message: 'Blog updated successfully' });
       return;
     } catch (error: unknown) {
-      console.warn(`MySQL update for post #${id} failed, falling back to memory store:`, (error as Error).message);
+      console.warn(`MySQL update for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
   }
 
   // Fallback update
-  const index = fallbackPosts.findIndex((p) => p.id === numId);
+  const index = fallbackPosts.findIndex((p) => p.id === validId);
   if (index === -1) {
     res.status(404).json({ message: 'Blog not found' });
     return;
@@ -174,8 +243,8 @@ export const updatePost = async (
 
   fallbackPosts[index] = {
     ...fallbackPosts[index],
-    title: title.trim(),
-    content: content.trim(),
+    title: cleanTitle,
+    content: cleanContent,
     updated_at: new Date().toISOString()
   };
 
@@ -184,12 +253,17 @@ export const updatePost = async (
 
 // DELETE /api/posts/:id - Delete a blog post
 export const deletePost = async (req: Request<{ id: string }>, res: Response): Promise<void> => {
-  const { id } = req.params;
-  const numId = parseInt(id, 10);
+  const validId = parseAndValidateId(req.params.id);
+
+  if (validId === null) {
+    res.status(400).json({ message: 'Invalid blog post ID. ID must be a positive integer.' });
+    return;
+  }
 
   if (isDbConnected()) {
     try {
-      const [result] = await pool.query<ResultSetHeader>('DELETE FROM posts WHERE id = ?', [id]);
+      // Binary prepared statement execution
+      const [result] = await pool.execute<ResultSetHeader>('DELETE FROM posts WHERE id = ?', [validId]);
 
       if (result.affectedRows === 0) {
         res.status(404).json({ message: 'Blog not found' });
@@ -199,12 +273,12 @@ export const deletePost = async (req: Request<{ id: string }>, res: Response): P
       res.status(200).json({ message: 'Blog deleted successfully' });
       return;
     } catch (error: unknown) {
-      console.warn(`MySQL delete for post #${id} failed, falling back to memory store:`, (error as Error).message);
+      console.warn(`MySQL delete for post #${validId} failed, falling back to memory store:`, (error as Error).message);
     }
   }
 
   // Fallback delete
-  const index = fallbackPosts.findIndex((p) => p.id === numId);
+  const index = fallbackPosts.findIndex((p) => p.id === validId);
   if (index === -1) {
     res.status(404).json({ message: 'Blog not found' });
     return;

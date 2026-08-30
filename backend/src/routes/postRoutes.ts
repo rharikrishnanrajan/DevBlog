@@ -6,14 +6,16 @@ import {
   updatePost,
   deletePost
 } from '../controllers/postController';
+import { writeOperationsRateLimiter } from '../middleware/security';
 
 const router = Router();
 
 // Routes for /api/posts
 router.get('/', getAllPosts);
 router.get('/:id', getPostById);
-router.post('/', createPost);
-router.put('/:id', updatePost);
-router.delete('/:id', deletePost);
+router.post('/', writeOperationsRateLimiter, createPost);
+router.put('/:id', writeOperationsRateLimiter, updatePost);
+router.delete('/:id', writeOperationsRateLimiter, deletePost);
 
 export default router;
+

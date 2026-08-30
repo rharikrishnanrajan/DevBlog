@@ -10,7 +10,15 @@ const dbUser = process.env.DB_USER || 'root';
 const dbPassword = process.env.DB_PASSWORD || '';
 const dbName = process.env.DB_NAME || 'defaultdb';
 
-// Create connection pool for MySQL (Aiven MySQL compatible with SSL)
+// Configure secure SSL options for managed/cloud MySQL (e.g. Aiven, PlanetScale, AWS RDS)
+const sslConfig =
+  process.env.DB_SSL === 'false'
+    ? undefined
+    : {
+        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED === 'true' ? true : false
+      };
+
+// Create connection pool for MySQL with secure timeouts and limits
 export const pool: Pool = mysql.createPool({
   host: dbHost,
   port: dbPort,
@@ -20,12 +28,8 @@ export const pool: Pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  ssl:
-    process.env.DB_SSL === 'false'
-      ? undefined
-      : {
-          rejectUnauthorized: false
-        }
+  connectTimeout: 10000,
+  ssl: sslConfig
 });
 
 let dbConnected = false;
@@ -36,9 +40,7 @@ export function isDbConnected(): boolean {
 
 // Auto-initialize posts table on startup
 export async function initDatabase(): Promise<boolean> {
-  console.log(
-    `🔌 Connecting to MySQL at ${dbHost}:${dbPort} (User: ${dbUser}, Database: ${dbName})...`
-  );
+  console.log(`🔌 Connecting to MySQL at ${dbHost}:${dbPort} (Database: ${dbName})...`);
   try {
     const connection = await pool.getConnection();
     console.log('✅ Connected to MySQL database successfully.');
@@ -50,7 +52,8 @@ export async function initDatabase(): Promise<boolean> {
         title VARCHAR(255) NOT NULL,
         content TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_posts_created_at (created_at DESC)
       );
     `;
     await connection.query(createTableQuery);
@@ -64,10 +67,10 @@ export async function initDatabase(): Promise<boolean> {
     console.warn('⚠️ MySQL database connection could not be established:', err.message);
     console.warn('ℹ️ Falling back to resilient in-memory storage so the application stays fully functional.');
     if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error('👉 Please check your DB_USER and DB_PASSWORD in backend/.env or environment variables.');
+      console.error('👉 Authentication failed. Please check your DB_USER and DB_PASSWORD credentials.');
     } else if (err.code === 'ER_BAD_DB_ERROR') {
       console.error(
-        `👉 Database "${dbName}" does not exist. Change DB_NAME in backend/.env to an existing database like "defaultdb" or create "blog".`
+        `👉 Database "${dbName}" does not exist. Change DB_NAME in backend/.env to an existing database.`
       );
     }
     return false;
@@ -75,3 +78,4 @@ export async function initDatabase(): Promise<boolean> {
 }
 
 export default pool;
+

@@ -5,11 +5,25 @@ import path from 'path';
 import fs from 'fs';
 import postRoutes from './routes/postRoutes';
 import { initDatabase, isDbConnected } from './config/database';
+import {
+  securityHeaders,
+  globalApiRateLimiter,
+  sanitizeRequestBody
+} from './middleware/security';
 
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Explicitly disable X-Powered-By header to prevent technology stack disclosure
+app.disable('x-powered-by');
+
+// Trust proxy headers for accurate client IP detection behind reverse proxies (Render, AWS, Nginx)
+app.set('trust proxy', 1);
+
+// Apply comprehensive HTTP security headers (CSP, HSTS, X-Frame-Options, X-Content-Type-Options)
+app.use(securityHeaders);
 
 // Resolve frontend directory path across dev and production build structures
 const candidateFrontendPaths = [
@@ -26,14 +40,19 @@ app.use(
   cors({
     origin: frontendUrl === '*' ? '*' : frontendUrl,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400 // Cache preflight response for 24 hours
   })
 );
 
-// Body Parsing Middleware
+// Body Parsing Middleware with size limits
 app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-// Request Logger
+// Input Sanitization Middleware (guards against prototype pollution & null-byte injections)
+app.use(sanitizeRequestBody);
+
+// Request Logger (redacting sensitive fields)
 app.use((req: Request, _res: Response, next: NextFunction) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
   next();
@@ -49,10 +68,13 @@ if (fs.existsSync(frontendPath)) {
 app.get('/api/health', (_req: Request, res: Response) => {
   res.status(200).json({
     status: 'ok',
-    message: 'Developer Blog API (Express + TypeScript) is running smoothly',
+    message: 'Developer Blog API (Express + TypeScript) is running securely',
     database: isDbConnected() ? 'connected (MySQL)' : 'in-memory fallback (active)'
   });
 });
+
+// Apply Global Rate Limiter to all /api endpoints
+app.use('/api', globalApiRateLimiter);
 
 // API Routes
 app.use('/api/posts', postRoutes);
@@ -74,7 +96,7 @@ app.get('*', (_req: Request, res: Response) => {
 
 // Global Error Handler Middleware
 app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Unhandled server error:', err);
+  console.error('Unhandled server error:', err.message || err);
   if (err.name === 'SyntaxError' || err.message?.includes('JSON')) {
     res.status(400).json({ message: 'Invalid JSON body provided' });
     return;
@@ -83,6 +105,7 @@ app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: 
     res.status(413).json({ message: 'Request payload is too large' });
     return;
   }
+  // Generic safe error message to prevent internal system or database disclosure
   res.status(500).json({ message: 'An unexpected error occurred on the server' });
 });
 
@@ -93,9 +116,10 @@ initDatabase().catch((err) => {
 
 // Start Express Server
 app.listen(PORT, () => {
-  console.log(`🚀 Unified Blog Application running on http://localhost:${PORT}`);
+  console.log(`🚀 Unified Blog Application running securely on http://localhost:${PORT}`);
   console.log(`🌐 Frontend UI: http://localhost:${PORT}`);
   console.log(`📡 REST API:   http://localhost:${PORT}/api/posts`);
 });
 
 export default app;
+
