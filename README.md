@@ -21,11 +21,11 @@ The **Developer-Centric Personal Blog Platform** is built with simplicity, speed
 ## 2. Technology Stack
 
 - **Frontend**: AngularJS (1.8.x), HTML5, CSS3, JavaScript (SPA with Hash-Bang Routing for GitHub Pages).
-- **Backend**: Node.js, Express.js, REST API (`mysql2/promise`, `cors`, `dotenv`).
+- **Backend**: Node.js, Express.js (v4.21.2), TypeScript (v5.7.2), REST API (`mysql2/promise`, `cors`, `dotenv`).
 - **Database**: Aiven MySQL 8.x (`blog` database, `posts` table).
 - **Hosting / Deployment**:
   - Frontend: **GitHub Pages**
-  - Backend: **Node.js hosting** (Render, Railway, Heroku, or VPS)
+  - Backend: **Render** (or Railway / Heroku / VPS)
   - Database: **Aiven Cloud MySQL**
 
 ---
@@ -42,7 +42,7 @@ The **Developer-Centric Personal Blog Platform** is built with simplicity, speed
                              │ REST API (JSON / CORS)
                              ▼
                   ┌──────────────────────┐
-                  │ Node.js + Express.js │
+                  │ Express + TypeScript │
                   │     REST Backend     │
                   └──────────┬───────────┘
                              │
@@ -67,16 +67,21 @@ Developer-Centric Personal Blog Platform/
 │   └── schema.sql              # MySQL table schema
 │
 ├── backend/
-│   ├── server.js               # Express application entry point
-│   ├── package.json            # Node.js dependencies & scripts
+│   ├── src/
+│   │   ├── server.ts           # Express application entry point (TypeScript)
+│   │   ├── config/
+│   │   │   └── database.ts     # MySQL connection pool with SSL
+│   │   ├── controllers/
+│   │   │   └── postController.ts # CRUD controllers with validation & types
+│   │   ├── routes/
+│   │   │   └── postRoutes.ts   # REST endpoint route definitions
+│   │   └── types/
+│   │       └── post.ts         # TypeScript interfaces (BlogPost, CreatePostInput)
+│   ├── dist/                   # Compiled JavaScript output
+│   ├── tsconfig.json           # TypeScript configuration
+│   ├── package.json            # Dependencies, scripts (dev, build, start)
 │   ├── .env.example            # Environment variables template
-│   ├── .gitignore              # Ignores .env and node_modules
-│   ├── config/
-│   │   └── database.js         # MySQL connection pool with SSL
-│   ├── controllers/
-│   │   └── postController.js   # CRUD controllers with validation
-│   ├── routes/
-│   │   └── postRoutes.js       # REST endpoint route definitions
+│   ├── .gitignore              # Ignores .env, node_modules, and dist
 │   └── README.md
 │
 ├── frontend/

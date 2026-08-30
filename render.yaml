@@ -17,7 +17,7 @@ services:
     region: singapore         # Change to your nearest region (us-east, us-west, eu-west, etc.)
     plan: free                # Free tier; upgrade to starter for always-on
 
-    buildCommand: npm install
+    buildCommand: npm install && npm run build
     startCommand: npm start
 
     # Health check — Render uses this to confirm the service is up

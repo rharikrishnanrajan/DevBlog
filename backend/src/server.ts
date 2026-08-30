@@ -59,12 +59,15 @@ app.use((err: Error & { status?: number }, _req: Request, res: Response, _next: 
   res.status(500).json({ message: 'An unexpected error occurred on the server' });
 });
 
-// Initialize Database & Start Express Server
-initDatabase().finally(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Express (TypeScript) Blog API running on http://localhost:${PORT}`);
-    console.log(`📡 Endpoints available under http://localhost:${PORT}/api/posts`);
-  });
+// Initialize Database asynchronously
+initDatabase().catch((err) => {
+  console.error('Database initialization error:', err);
+});
+
+// Start Express Server
+app.listen(PORT, () => {
+  console.log(`🚀 Express (TypeScript) Blog API running on http://localhost:${PORT}`);
+  console.log(`📡 Endpoints available under http://localhost:${PORT}/api/posts`);
 });
 
 export default app;

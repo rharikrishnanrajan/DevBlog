@@ -1,10 +1,10 @@
 # Backend - Developer-Centric Personal Blog Platform
 
-Pure Node.js (`http` module) REST API backend with MySQL (Aiven MySQL compatible).
+TypeScript (v5.7.2) REST API backend built with Express (v4.21.2) and MySQL (Aiven MySQL compatible).
 
 ## Prerequisites
 
-- Node.js (v16+)
+- Node.js (v18+)
 - MySQL 8.x or Aiven MySQL instance
 
 ## Setup Instructions
@@ -29,16 +29,16 @@ Pure Node.js (`http` module) REST API backend with MySQL (Aiven MySQL compatible
    DB_NAME=blog
    ```
 
-3. Initialize the database schema:
-   Run the SQL statements in `../database/schema.sql` on your MySQL server.
-
-4. Start the server:
+3. Build and Start the server:
    ```bash
-   # Production / standard mode
-   npm start
-
-   # Development with auto-reload
+   # Development with auto-reload (TSX)
    npm run dev
+
+   # Build TypeScript to dist/
+   npm run build
+
+   # Production mode (runs compiled JS)
+   npm start
    ```
 
 ## REST API Endpoints

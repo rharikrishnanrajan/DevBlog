@@ -22,7 +22,7 @@ export const pool: Pool = mysql.createPool({
   queueLimit: 0,
   ssl:
     process.env.DB_SSL === 'false'
-      ? false
+      ? undefined
       : {
           rejectUnauthorized: false
         }
