@@ -1,16 +1,22 @@
 <div class="page-container blog-detail-view">
-<!-- Navigation Back Link -->
-<div class="detail-nav-bar">
-    <a href="#!/" class="btn btn-outline" id="back-to-blogs-btn">
-        <span class="arrow">&larr;</span> Back to Blogs
-    </a>
-    <a href="#!/admin/edit/{{ post.id }}" class="btn btn-secondary" id="edit-current-blog-btn" ng-if="post">
-        ✏️ Edit Blog
-    </a>
-    <button type="button" class="btn btn-danger" id="delete-current-blog-btn" ng-if="post" ng-click="deleteBlog(post)">
-        🗑️ Delete Blog
-    </button>
-</div>
+    <!-- Top Action Toolbar -->
+    <div class="detail-nav-bar">
+        <a href="#!/" class="btn btn-outline" id="back-to-blogs-btn">
+            <span class="arrow">&larr;</span> Back to Blogs
+        </a>
+        <div class="detail-actions" ng-if="post">
+            <button type="button" class="btn btn-outline" id="share-blog-btn" ng-click="copyLink()" title="Copy link to this article">
+                <span ng-if="!linkCopied">📋 Share Link</span>
+                <span ng-if="linkCopied">✅ Copied!</span>
+            </button>
+            <a href="#!/admin/edit/{{ post.id }}" class="btn btn-secondary" id="edit-current-blog-btn">
+                ✏️ Edit
+            </a>
+            <button type="button" class="btn btn-danger" id="delete-current-blog-btn" ng-click="deleteBlog(post)">
+                🗑️ Delete
+            </button>
+        </div>
+    </div>
 
     <!-- Loading State -->
     <div ng-if="loading" class="loading-state">
@@ -31,32 +37,41 @@
     <!-- Blog Article Container -->
     <article class="article-container" ng-if="!loading && post">
         <header class="article-header">
+            <div class="article-badge">
+                <span class="badge-tag">ENGINEERING BLOG</span>
+            </div>
             <h1 class="article-title">{{ post.title }}</h1>
             <div class="article-meta">
-                <span class="meta-date">Published on {{ formatDate(post.created_at) }}</span>
+                <span class="meta-item">
+                    <span class="meta-icon">📅</span> Published {{ formatDate(post.created_at) }}
+                </span>
                 <span class="meta-separator" ng-if="post.updated_at && post.updated_at !== post.created_at">&bull;</span>
-                <span class="meta-updated" ng-if="post.updated_at && post.updated_at !== post.created_at">Updated {{ formatDate(post.updated_at) }}</span>
+                <span class="meta-item" ng-if="post.updated_at && post.updated_at !== post.created_at">
+                    <span class="meta-icon">🔄</span> Updated {{ formatDate(post.updated_at) }}
+                </span>
                 <span class="meta-separator">&bull;</span>
-                <span class="meta-readtime">{{ getReadTime(post.content) }}</span>
+                <span class="meta-item">
+                    <span class="meta-icon">⏱️</span> {{ getReadTime(post.content) }}
+                </span>
             </div>
         </header>
 
         <div class="divider"></div>
 
-        <!-- Blog Main Content (Preserving line breaks and formatting) -->
-        <div class="article-body">
-            <p class="article-paragraph" ng-repeat="paragraph in post.content.split('\n') track by $index" ng-if="paragraph.trim().length > 0">
-                {{ paragraph }}
-            </p>
-        </div>
+        <!-- Rich Markdown Rendered Article Body -->
+        <div class="article-content" ng-bind-html="renderMarkdown(post.content)"></div>
 
         <div class="divider"></div>
 
-        <!-- Article Footer with back navigation -->
+        <!-- Article Footer with back navigation & share actions -->
         <footer class="article-footer">
             <a href="#!/" class="btn btn-primary" id="footer-back-btn">
-                <span class="arrow">&larr;</span> Back to Blogs
+                <span class="arrow">&larr;</span> Back to All Blogs
             </a>
+            <button type="button" class="btn btn-outline" ng-click="copyLink()">
+                <span ng-if="!linkCopied">🔗 Copy Article Link</span>
+                <span ng-if="linkCopied">✅ Copied to Clipboard!</span>
+            </button>
         </footer>
     </article>
 </div>
