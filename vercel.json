@@ -1,23 +1,30 @@
 {
-  "version": 2,
+  "services": {
+    "backend": {
+      "root": "./",
+      "entrypoint": "Dockerfile.versel"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
+    }
+  ],
   "builds": [
     {
-      "src": "frontend/**/*",
+      "src": "frontend/dist/**",
       "use": "@vercel/static"
-    },
-    {
-      "src": "backend/dist/server.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/backend/dist/server.js"
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
     }
   ]
 }
