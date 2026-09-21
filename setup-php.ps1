@@ -17,52 +17,50 @@ $phpExe = $php.FullName
 $phpDir = $php.DirectoryName
 $ini = Join-Path $phpDir "php.ini"
 $ext = Join-Path $phpDir "ext"
+$extFormatted = $ext.Replace('\', '/')
 
 Write-Host "=========================================="
-Write-Host "PHP Exe: $phpExe"
-Write-Host "PHP Dir: $phpDir"
-Write-Host "Ext Dir: $ext"
+Write-Host "PHP Executable: $phpExe"
+Write-Host "PHP Directory: $phpDir"
+Write-Host "Ext Directory: $extFormatted"
 
-# Check if ext folder and mysql dlls exist
-if (Test-Path $ext) {
-    Write-Host "Files in ext folder matching *mysql*:"
-    $dlls = Get-ChildItem -Path $ext -Filter "*mysql*" -ErrorAction SilentlyContinue
-    if ($dlls) {
-        foreach ($d in $dlls) { Write-Host "  Found: $($d.Name)" -ForegroundColor Green }
-    } else {
-        Write-Host "  No *mysql* DLLs found in $ext!" -ForegroundColor Red
-        Write-Host "  All DLLs in $ext:"
-        Get-ChildItem -Path $ext -Filter "*.dll" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "    $($_.Name)" }
+# Write full php.ini directly in php directory so every thread finds it
+$iniLines = @(
+    "[PHP]",
+    "extension_dir = `"$extFormatted`"",
+    "extension = pdo_mysql",
+    "extension = mysqli",
+    "extension = curl",
+    "extension = mbstring",
+    "display_errors = On",
+    "display_startup_errors = On",
+    "error_reporting = E_ALL"
+)
+
+Set-Content -Path $ini -Value $iniLines -Force
+Write-Host "Wrote php.ini to: $ini" -ForegroundColor Green
+
+# Set PHPRC environment variable for the session
+$env:PHPRC = $phpDir
+
+# Test PDO MySQL driver in this environment
+Write-Host "Verifying PDO drivers in PHP:" -ForegroundColor Cyan
+& "$phpExe" -c "$ini" -r "echo 'Available PDO drivers: [' . implode(', ', PDO::getAvailableDrivers()) . ']' . PHP_EOL;"
+
+Write-Host "=========================================="
+
+# Kill any existing PHP built-in server on port 8000 to avoid stale processes
+$stale = Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue
+if ($stale) {
+    $stale | ForEach-Object {
+        $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue
+        if ($proc -and $proc.Name -like "php*") {
+            Write-Host "Stopping stale PHP process (PID $($proc.Id))..." -ForegroundColor Yellow
+            Stop-Process -Id $proc.Id -Force
+        }
     }
-} else {
-    Write-Host "EXT FOLDER DOES NOT EXIST AT: $ext" -ForegroundColor Red
-    # Search for ext anywhere in phpDir
-    $foundExt = Get-ChildItem -Path $phpDir -Directory -Filter "ext" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($foundExt) {
-        $ext = $foundExt.FullName
-        Write-Host "Found ext folder at: $ext" -ForegroundColor Green
-    }
+    Start-Sleep -Milliseconds 500
 }
 
-# Create / update php.ini with exact paths
-$iniContent = @"
-[PHP]
-extension_dir = "$($ext.Replace('\', '/'))"
-extension = pdo_mysql
-extension = mysqli
-extension = php_pdo_mysql.dll
-extension = php_mysqli.dll
-display_errors = On
-error_reporting = E_ALL
-"@
-
-Set-Content -Path $ini -Value $iniContent -Force
-Write-Host "Wrote clean php.ini to: $ini" -ForegroundColor Cyan
-
-# Test PDO drivers
-Write-Host "`nTesting PDO drivers currently reported by PHP:" -ForegroundColor Cyan
-& "$phpExe" -c "$ini" -r "echo 'Available PDO drivers: ' . implode(', ', PDO::getAvailableDrivers()) . PHP_EOL;"
-
-Write-Host "==========================================`n"
-Write-Host "Starting DevBlog on http://localhost:8000 ..." -ForegroundColor Green
+Write-Host "🚀 Starting DevBlog server on http://localhost:8000 ..." -ForegroundColor Green
 & "$phpExe" -c "$ini" -S localhost:8000 router.php
