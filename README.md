@@ -63,7 +63,7 @@ DevBlog/
 Run the provided SQL migration in your MySQL client:
 
 ```bash
-mysql -u root -pHari@2906 < database/schema.sql
+mysql -u root -p < database/schema.sql
 ```
 
 Alternatively, open MySQL Workbench / phpMyAdmin, create database `blog`, and execute the statements in [`database/schema.sql`](database/schema.sql).
