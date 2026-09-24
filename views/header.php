@@ -15,7 +15,7 @@ $pageDescription = $pageDescription ?? 'A minimalist, developer-focused personal
     <meta name="description" content="<?= htmlspecialchars($pageDescription, ENT_QUOTES, 'UTF-8') ?>">
 
     <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="assets/images/logo.jpg">
+    <link rel="icon" type="image/png" href="assets/images/logo.png">
     <meta name="theme-color" content="#0d1117">
     
     <!-- Google Fonts -->

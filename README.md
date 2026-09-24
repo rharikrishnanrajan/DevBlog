@@ -39,7 +39,7 @@ DevBlog/
 │   ├── js/
 │   │   └── app.js          # Client-side controller (search, markdown preview, modals, AJAX)
 │   └── images/
-│       └── logo.jpg        # DevBlog branding logo
+│       └── logo.png        # DevBlog branding logo
 ├── database/
 │   └── schema.sql          # MySQL database initialization script & seed articles
 ├── views/
